@@ -25,7 +25,7 @@ namespace mw2_fps_unlocker
             trackBarFPS.Scroll += TrackBarFPS_Scroll;
             trackBarFPS.Minimum = 75;
             trackBarFPS.Maximum = 300;
-            trackBarFPS.Value = 300;
+            trackBarFPS.Value = 250;
             trackBarFPS.TickStyle = TickStyle.None;
 
             trackBarFOV = new TrackBarWithoutFocus();
@@ -34,8 +34,11 @@ namespace mw2_fps_unlocker
             trackBarFOV.Scroll += TrackBarFOV_Scroll;
             trackBarFOV.Minimum = 60;
             trackBarFOV.Maximum = 100;
-            trackBarFOV.Value = 80;
+            trackBarFOV.Value = 90;
             trackBarFOV.TickStyle = TickStyle.None;
+
+            LabelFPSValue.Text = trackBarFPS.Value.ToString();
+            LabelFOVValue.Text = trackBarFOV.Value.ToString();
 
             this.Controls.Add(trackBarFPS);
             this.Controls.Add(trackBarFOV);
