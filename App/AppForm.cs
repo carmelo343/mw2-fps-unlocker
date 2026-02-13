@@ -72,22 +72,31 @@ namespace mw2_fps_unlocker
         /// <param name="e"></param>
         private void Updater_DoWork(object? sender, DoWorkEventArgs e)
         {
-            LabelStatusValue.Text = "MW2 Started";
-            LabelStatusValue.ForeColor = Color.Green;
+            Invoke(new Action(() =>
+            {
+                LabelStatusValue.Text = "MW2 Started";
+                LabelStatusValue.ForeColor = Color.Green;
+            }));
 
             while (proc.IsRunning())
             {
-                SetFPS();
-                SetFOV();
+                Invoke(new Action(() =>
+                {
+                    SetFPS();
+                    SetFOV();
+                }));
                 Thread.Sleep(250);
             }
 
-            LabelStatusValue.Text = "Not In-game";
-            LabelStatusValue.ForeColor = Color.RoyalBlue;
+            Invoke(new Action(() =>
+            {
+                LabelStatusValue.Text = "Not In-game";
+                LabelStatusValue.ForeColor = Color.RoyalBlue;
+            }));
 
             // Start the Find Process routine so we don't need to restart
             // the app.
-            FindProcess();
+            Invoke(new Action(FindProcess));
         }
 
         private void SetFPS()
