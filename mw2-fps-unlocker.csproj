@@ -7,7 +7,7 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
-    <ApplicationIcon>gnome-ico.ico</ApplicationIcon>
+    <ApplicationIcon>10.ico</ApplicationIcon>
     <Authors>Branders</Authors>
     <Product>MW2 FPS Unlocker</Product>
     <StartupObject></StartupObject>
@@ -16,7 +16,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="gnome-ico.ico" />
+    <Content Include="10.ico" />
   </ItemGroup>
 
   <ItemGroup>
