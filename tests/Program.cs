@@ -58,7 +58,8 @@ try
     Reject(() => GameImage.Load(invalid), "invalid PE rejected");
     using var log = new DiagnosticLog(temp);
     log.Write("portable fixture");
-    Check(File.ReadAllText(log.FilePath).Contains("portable fixture"), "diagnostic log flushed immediately");
+    using (var reader = new StreamReader(new FileStream(log.FilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)))
+        Check(reader.ReadToEnd().Contains("portable fixture"), "diagnostic log flushed immediately");
     if (OperatingSystem.IsWindows())
     {
         nint block = Marshal.AllocHGlobal(32);
