@@ -1,20 +1,16 @@
-# MW2 2009 FPS and FOV Unlocker :unlock:
+# MW2 2009 FPS/FOV Unlocker — CrossOver investigation
 
-Tool for changing the max fps and fov for mw2 (2009) because they do not provide it.
+This MIT-licensed fork of [andersblomqvist/mw2-fps-unlocker](https://github.com/andersblomqvist/mw2-fps-unlocker) adds staged diagnostics for Steam MW2 (2009) multiplayer running in Wine/CrossOver.
 
-1. Download the exe file from releases: https://github.com/andersblomqvist/mw2-fps-unlocker/releases/download/v1.3/MW2.FPS.Unlocker.exe
-2. Start FPS Unlocker
-3. Start MW2 through steam
-4. Change sliders to your preference
+**CrossOver compatibility is not yet confirmed. The default build cannot write game memory.** It starts in detection-only mode; `--mode read-only` adds validated module/header inspection and timestamped API logs. Neither mode applies FPS or FOV changes.
 
-Updated for September 2026
+Read [CROSSOVER.md](CROSSOVER.md) for build/run commands, the source-based crash hypothesis, the incremental test procedure, and limitations. [TEST_RESULTS.md](TEST_RESULTS.md) distinguishes completed build checks from pending game testing.
 
-## Screenshot
+```sh
+dotnet run --project tests/Diagnostics.Tests.csproj -c Release
+./scripts/build.sh
+```
 
-![Screenshot](screenshot.png "Screenshot")
+Requires the .NET SDK pinned in `global.json` and Python 3 for the read-only assembly check. Builds a self-contained Windows x64 folder on macOS or Windows (`scripts/build.ps1`); keep all published files beside the executable. No game files are replaced.
 
-## Notes
-
-This is for MW2 released in 2009.
-
-No recorded vac-bans. Use at your own risk.
+The original FPS/FOV ranges and polling functionality remain in an experimental source path, requiring a separately enabled build, an independently verified exact-executable profile, explicit patch mode, and individual GUI toggles. No profile is shipped. Do not test writes against a live game without explicit authorization for that stage. No VAC safety claim, anti-cheat bypass, injection or stealth behavior is provided.
