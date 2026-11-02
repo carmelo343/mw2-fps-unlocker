@@ -1,152 +1,103 @@
-using mw2_fps_unlocker.Memory;
 using mw2_fps_unlocker.App;
-using System.ComponentModel;
-using System.Diagnostics;
+using mw2_fps_unlocker.Core;
+using mw2_fps_unlocker.Diagnostics;
 
-namespace mw2_fps_unlocker
+namespace mw2_fps_unlocker;
+
+public partial class AppForm : Form
 {
-    public partial class AppForm : Form
+    private readonly TrackBarWithoutFocus trackBarFPS = new();
+    private readonly TrackBarWithoutFocus trackBarFOV = new();
+    private readonly CheckBox enableFps = new() { Text = "Enable FPS writes", AutoSize = true, Location = new(12, 140) };
+    private readonly CheckBox enableFov = new() { Text = "Enable FOV writes", AutoSize = true, Location = new(12, 168) };
+    private readonly CancellationTokenSource cancellation = new();
+    private Task? worker;
+    private PatchRequest settings = new(Guid.Empty, false, false, 300, 80);
+    private Guid sessionId;
+    private bool shutdownComplete;
+    private bool shutdownStarted;
+    private readonly Options options;
+    private readonly DiagnosticLog log;
+
+    internal AppForm(Options options, DiagnosticLog log)
     {
-        private const long OFFSET_COM_MAXFPS = 0x1D260A8;   // int
-        private const long OFFSET_CG_FOV = 0x809C78;        // float
-        private const int DVAR_VALUE_OFFSET = 0x10;
-
-        private MemoryHandler? mem;
-        private readonly ProcessHandler proc;
-
-        private bool ingame = false;
-
-        private readonly TrackBarWithoutFocus trackBarFPS;
-        private readonly TrackBarWithoutFocus trackBarFOV;
-
-        private BackgroundWorker updater;
-        public AppForm()
+        this.options = options;
+        this.log = log;
+        InitializeComponent();
+        Text = "MW2 diagnostics — " + options.Mode;
+        ClientSize = new(500, 280);
+        label1.Location = new(390, 250);
+        trackBarFPS.Location = new(50, 37);
+        trackBarFPS.Size = new(151, 40);
+        trackBarFPS.Minimum = 75;
+        trackBarFPS.Maximum = 500;
+        trackBarFPS.Value = 300;
+        trackBarFPS.TickStyle = TickStyle.None;
+        trackBarFOV.Location = new(50, 80);
+        trackBarFOV.Size = new(151, 40);
+        trackBarFOV.Minimum = 60;
+        trackBarFOV.Maximum = 100;
+        trackBarFOV.Value = 80;
+        trackBarFOV.TickStyle = TickStyle.None;
+        enableFps.Enabled = enableFov.Enabled = false;
+        trackBarFPS.ValueChanged += (_, _) => UpdateSettings();
+        trackBarFOV.ValueChanged += (_, _) => UpdateSettings();
+        enableFps.CheckedChanged += (_, _) => UpdateSettings();
+        enableFov.CheckedChanged += (_, _) => UpdateSettings();
+        var modeLabel = new Label { Text = options.Mode == RunMode.Patch
+            ? "Experimental writes require a matching profile and explicit toggles."
+            : "Diagnostic mode: no game-memory writes.", AutoSize = true, Location = new(12, 208) };
+        var logButton = new Button { Text = "Show log path", Location = new(12, 240), AutoSize = true };
+        logButton.Click += (_, _) => MessageBox.Show(log.FilePath, "Diagnostic log");
+        Controls.AddRange([trackBarFPS, trackBarFOV, enableFps, enableFov, modeLabel, logButton]);
+        Shown += (_, _) =>
         {
-            InitializeComponent();
+            var progress = new Progress<SessionStatus>(UpdateStatus);
+            worker = Task.Run(() => new GameSession(options, log, progress,
+                () => Volatile.Read(ref settings)).RunAsync(cancellation.Token));
+        };
+        FormClosing += OnClosing;
+    }
 
-            trackBarFPS = new TrackBarWithoutFocus();
-            trackBarFPS.Location = new Point(50, 37);
-            trackBarFPS.Size = new Size(151, 45);
-            trackBarFPS.Scroll += TrackBarFPS_Scroll;
-            trackBarFPS.Minimum = 75;
-            trackBarFPS.Maximum = 500;
-            trackBarFPS.Value = 300;
-            trackBarFPS.TickStyle = TickStyle.None;
-
-            trackBarFOV = new TrackBarWithoutFocus();
-            trackBarFOV.Location = new Point(50, 80);
-            trackBarFOV.Size = new Size(151, 45);
-            trackBarFOV.Scroll += TrackBarFOV_Scroll;
-            trackBarFOV.Minimum = 60;
-            trackBarFOV.Maximum = 100;
-            trackBarFOV.Value = 80;
-            trackBarFOV.TickStyle = TickStyle.None;
-
-            this.Controls.Add(trackBarFPS);
-            this.Controls.Add(trackBarFOV);
-
-            proc = new ProcessHandler();
-
-            updater = new BackgroundWorker();
-            updater.DoWork += Updater_DoWork;
-
-            FindProcess();
-        }
-
-        private void FindProcess()
+    private void UpdateStatus(SessionStatus status)
+    {
+        if (IsDisposed || cancellation.IsCancellationRequested) return;
+        if (sessionId != status.Session || !status.CanPatch)
         {
-            proc.FindByName("iw4mp", (mw2) =>
-            {
-                Invoke(new Action(() =>
-                {
-                    mem = new MemoryHandler(mw2);
-                    ingame = true;
-                    updater.RunWorkerAsync();
-                }));
-            });
+            sessionId = status.Session;
+            enableFps.Checked = enableFov.Checked = false;
+            UpdateSettings();
         }
+        enableFps.Enabled = enableFov.Enabled = status.CanPatch;
+        LabelStatusValue.Text = status.Text;
+        LabelStatusValue.ForeColor = status.Session == Guid.Empty ? Color.RoyalBlue : Color.DarkGreen;
+    }
 
-        /// <summary>
-        /// We need to constantly write the FPS and FOV change. Otherwise
-        /// it resets back to normal by mw2.
-        /// </summary>
-        private void Updater_DoWork(object? sender, DoWorkEventArgs e)
+    private void UpdateSettings()
+    {
+        LabelFPSValue.Text = trackBarFPS.Value.ToString();
+        LabelFOVValue.Text = trackBarFOV.Value.ToString();
+        var next = new PatchRequest(sessionId, enableFps.Checked, enableFov.Checked, trackBarFPS.Value, trackBarFOV.Value);
+        Volatile.Write(ref settings, next);
+        log.Write($"CONTROLS session={sessionId} fpsEnabled={next.Fps} fovEnabled={next.Fov} fps={next.FpsValue} fov={next.FovValue}");
+    }
+
+    private async void OnClosing(object? sender, FormClosingEventArgs e)
+    {
+        if (shutdownComplete) return;
+        e.Cancel = true;
+        if (shutdownStarted) return;
+        shutdownStarted = true;
+        Enabled = false;
+        cancellation.Cancel();
+        if (worker != null)
         {
-            Invoke(new Action(() =>
-            {
-                LabelStatusValue.Text = "MW2 Started";
-                LabelStatusValue.ForeColor = Color.Green;
-            }));
-
-            while (proc.IsRunning())
-            {
-                SetFPS();
-                SetFOV();
-                Thread.Sleep(250);
-            }
-
-            ingame = false;
-            mem = null;
-
-            Invoke(new Action(() =>
-            {
-                LabelStatusValue.Text = "Not In-game";
-                LabelStatusValue.ForeColor = Color.RoyalBlue;
-            }));
-
-            // Start the Find Process routine so we don't need to restart
-            // the app.
-            FindProcess();
+            try { await worker; }
+            catch (OperationCanceledException) { }
+            catch (Exception ex) { log.Exception("Worker shutdown", ex); }
         }
-
-        /// <summary>
-        /// Resolves a dvar_t* stored at moduleBase + offset. Returns Zero if
-        /// the game hasn't registered the dvar yet.
-        /// </summary>
-        private IntPtr GetDvar(long globalOffset)
-        {
-            if (mem == null)
-                return IntPtr.Zero;
-
-            return mem.ReadPointer(mem.BaseAddress + (nint)globalOffset);
-        }
-
-        private void SetFPS()
-        {
-            if (mem == null)
-                return;
-
-            IntPtr dvar = GetDvar(OFFSET_COM_MAXFPS);
-            if (dvar == IntPtr.Zero)
-                return;
-
-            mem.WriteInteger(dvar + DVAR_VALUE_OFFSET, trackBarFPS.Value);
-        }
-
-        private void SetFOV()
-        {
-            if (mem == null)
-                return;
-
-            IntPtr dvar = GetDvar(OFFSET_CG_FOV);
-            if (dvar == IntPtr.Zero)
-                return;
-
-            mem.WriteFloat(dvar + DVAR_VALUE_OFFSET, trackBarFOV.Value);
-        }
-
-        private void TrackBarFPS_Scroll(object? sender, EventArgs e)
-        {
-            LabelFPSValue.Text = trackBarFPS.Value.ToString();
-            if (ingame)
-                SetFPS();
-        }
-
-        private void TrackBarFOV_Scroll(object? sender, EventArgs e)
-        {
-            LabelFOVValue.Text = trackBarFOV.Value.ToString();
-            if (ingame)
-                SetFOV();
-        }
+        cancellation.Dispose();
+        shutdownComplete = true;
+        Close();
     }
 }
