@@ -2,7 +2,7 @@
 
 This MIT-licensed fork of [andersblomqvist/mw2-fps-unlocker](https://github.com/andersblomqvist/mw2-fps-unlocker) adds staged diagnostics for Steam MW2 (2009) multiplayer running in Wine/CrossOver.
 
-**CrossOver compatibility is not yet confirmed. The default build cannot write game memory.** It starts in detection-only mode; `--mode read-only` adds validated module/header inspection and timestamped API logs. Neither mode applies FPS or FOV changes.
+**Detection and read-only inspection passed limited CrossOver main-menu tests. FPS/FOV patching remains untested. The default build cannot write game memory.** It starts in detection-only mode; `--mode read-only` adds validated module/header inspection and timestamped API logs. Neither mode applies FPS or FOV changes.
 
 Read [CROSSOVER.md](CROSSOVER.md) for build/run commands, the source-based crash hypothesis, the incremental test procedure, and limitations. [TEST_RESULTS.md](TEST_RESULTS.md) distinguishes completed build checks from pending game testing.
 

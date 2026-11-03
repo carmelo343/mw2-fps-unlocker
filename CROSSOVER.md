@@ -1,6 +1,6 @@
 # CrossOver investigation and diagnostic build
 
-Status: **investigation in progress; compatibility and FPS/FOV modification have not been confirmed in CrossOver.** The delivered executable cannot write game memory. Do not substitute the upstream executable during these tests.
+Status: **detection and read-only inspection have now been exercised in CrossOver; FPS/FOV modification remains untested.** The delivered executable cannot write game memory. Do not substitute the upstream executable during these tests.
 
 ## What the source establishes
 
@@ -13,7 +13,15 @@ Baseline: upstream `ce77a4d` (use `git rev-parse upstream/main` for the full che
 - There is no executable hash, target architecture, dvar name/type, page protection or structure-layout check. Workers are not cancelled on form close, process wrappers are not disposed, and the background worker reads GUI controls directly.
 - The recent 64-bit migration changed the old x86 pointer/value scheme (`+0xC`) to `+0x10` without evidence of a validated layout in the repository. An older installed unlocker may instead contain obsolete absolute x86 addresses. Record the actual unlocker version/hash when comparing results.
 
-**Leading hypothesis, not a proven root cause:** one of these automatic writes targets an outdated RVA or the wrong field in the 64-bit dvar structure. Pointer expansion and alignment can shift fields by more than four bytes; `+0x10` could refer to metadata rather than the value. We must examine this executable's layout before choosing another offset. A read-access fault later inside `iw4mp` can be a delayed consequence of earlier corruption. The supplied symptom alone cannot distinguish FPS from FOV, or exclude a Wine issue.
+**Initial source-based hypothesis, not a proven root cause (see runtime update below):** one of these automatic writes targets an outdated RVA or the wrong field in the 64-bit dvar structure. Pointer expansion and alignment can shift fields by more than four bytes; `+0x10` could refer to metadata rather than the value. We must examine this executable's layout before choosing another offset. A read-access fault later inside `iw4mp` can be a delayed consequence of earlier corruption. The supplied symptom alone cannot distinguish FPS from FOV, or exclude a Wine issue.
+
+### Runtime evidence, 3 November 2026
+
+Manual CrossOver launches plus diagnostic logs established that process discovery, module enumeration, `OpenProcess` with access `0x410`, `IsWow64Process2`, `VirtualQueryEx` and `ReadProcessMemory` work in this bottle. The user confirmed a responsive MW2 main menu. The observed executable is x64 with SHA-256 `926F8A47959F2B24420898D07F599883E0866050D42D5289F94EEF546A4A3492`.
+
+A workspace-only candidate profile was used exclusively with the diagnostic binary's read-only mode. It validated the expected `com_maxfps` and `cg_fov` names at the current upstream RVAs, type bytes 5 and 1 at offset `+0xC`, and current values 85 and 65 at `+0x10`. This weakens the initial incorrect-offset/layout hypothesis for this exact executable. It does not establish write safety, prove the identity of the user's original unlocker, or reproduce its crash. No replacement offset is justified by these observations.
+
+The queried candidate data pages had protection `0x08` (`PAGE_WRITECOPY`). This is an observed property, not evidence of a Wine defect. Separate FPS/FOV write tests remain unauthorized and were not run. See `TEST_RESULTS.md` and `RUNTIME_TEST_RESULTS.md` for the measured sequence and its limits.
 
 The P/Invoke address and SIZE_T parameters in current upstream are already pointer-sized; blindly converting more integers to 64-bit does not establish a fix. [ReadProcessMemory](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-readprocessmemory) reports failures through its return value, byte count and last error. The inspector now checks all three. [Wine's current implementation](https://github.com/wine-mirror/wine/blob/master/dlls/kernelbase/memory.c) implements read/query/write APIs; their presence does not prove behavior in the installed CrossOver version. The new inspector does not depend on patching executable pages or changing protection.
 
@@ -45,7 +53,7 @@ The result is `artifacts/diagnostic-win-x64/MW2.FPS.Unlocker.exe` **plus every s
 
 ## Run the first two stages in the existing Steam bottle
 
-Do not copy anything into the game directory or replace `iw4mp.exe`. Unzip the diagnostic folder somewhere separate, for example a folder under Downloads. Close the old unlocker first. These steps are manual because running tests against the game requires your interaction. No live game process was opened during development.
+Do not copy anything into the game directory or replace `iw4mp.exe`. Unzip the diagnostic folder somewhere separate, for example a folder under Downloads. Close the old unlocker first. These steps are manual because running tests against the game requires your interaction. The initial implementation did not open a live game process; the later user-authorized read-only tests are recorded below and in the validation record.
 
 1. Open CrossOver, select the existing **Steam** bottle, choose **Run Command**, and browse to the extracted `MW2.FPS.Unlocker.exe`. Do not create or change the bottle.
 2. Append `--mode detect` to the command. The default with no arguments is also detect-only. Launch the utility before MW2. Confirm the GUI opens; then launch MW2 normally through Steam in the same bottle. Keep it running for several minutes, close MW2 normally, and launch it again at least three times with the utility left open. Detection only enumerates processes/checks exit state; it does not enumerate game modules or call our memory APIs. Both write toggles remain disabled.
@@ -67,7 +75,7 @@ For an optional shell launch, first confirm this installed CrossOver provides it
 
 Send the **detect** log and **read-only** log (and `.previous` segment if present), including startup through the first failure or clean exit. Also send:
 
-- Exact CrossOver version, macOS version, bottle architecture, and whether each of three repeated launches stayed stable. CrossOver 26.3 was found installed on the development Mac; runtime testing was not performed.
+- Exact CrossOver version, macOS version, bottle architecture, and whether each of three repeated launches stayed stable. CrossOver 26.3 was found installed on the development Mac; runtime detection/read-only testing was subsequently performed; memory writes were not tested.
 - The old unlocker's file version and, if possible, its SHA-256. Read-only logs record the game SHA-256, pointer size, machine type, PE timestamp and image size automatically.
 - For any crash: the complete Wine Debugger text including faulting instruction, registers, backtrace, module list, and the time of the crash. Use CrossOver's logging controls for the relevant Run Command if available; preserve the generated report.
 
@@ -88,7 +96,7 @@ If a required inspection operation fails, the session stops memory operations an
 
 ## Experimental FPS/FOV path — not part of the delivered binary
 
-The source preserves the 75–500 FPS and 60–100 FOV controls and a 250 ms update loop behind `EnableMemoryWrites=true`. It does not ship a game profile, because no executable/layout has yet been verified. A profile must identify an exact game SHA-256, pointer width, both dvar global RVAs, and each dvar's name-pointer/type/value offsets and expected type byte. Integers in JSON are decimal. See `Core/GameProfile.cs` for the schema; there are deliberately no copy-and-run speculative offsets.
+The source preserves the 75–500 FPS and 60–100 FOV controls and a 250 ms update loop behind `EnableMemoryWrites=true`. It does not ship a game profile, because no layout has yet been validated for live writes. A profile must identify an exact game SHA-256, pointer width, both dvar global RVAs, and each dvar's name-pointer/type/value offsets and expected type byte. Integers in JSON are decimal. See `Core/GameProfile.cs` for the schema; there are deliberately no copy-and-run speculative offsets.
 
 For later maintainer validation only:
 
