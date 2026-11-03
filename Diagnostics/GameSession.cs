@@ -86,7 +86,8 @@ internal sealed class GameSession(Options options, DiagnosticLog log, IProgress<
         using var memory = new MemoryHandler(process.Id, image.PointerSize, options.Mode is RunMode.Patch or RunMode.FpsOnce, log);
         memory.ValidateArchitecture(image.Machine);
         ValidateLiveImage(memory, module.BaseAddress, image);
-        status.Report(new(id, "Validated — " + options.Mode, options.Mode == RunMode.Patch && profile != null));
+        status.Report(new(id, "Validated — waiting for stable settings"));
+        bool patchReady = false;
         DvarSnapshot? previousFps = null, previousFov = null;
         var stable = new Stopwatch();
         while (!process.HasExited)
@@ -106,9 +107,24 @@ internal sealed class GameSession(Options options, DiagnosticLog log, IProgress<
             {
                 PatchRequest current = request();
                 var fps = InspectDvar(memory, module.BaseAddress, profile.Fps, "com_maxfps", false,
-                    current.Session == id && current.Fps, current.FpsValue);
+                    patchReady && current.Session == id && current.Fps, current.FpsValue);
                 var fov = InspectDvar(memory, module.BaseAddress, profile.Fov, "cg_fov", true,
-                    current.Session == id && current.Fov, current.FovValue);
+                    patchReady && current.Session == id && current.Fov, current.FovValue);
+                if (options.Mode == RunMode.Patch && !patchReady)
+                {
+                    bool unchanged = fps != null && fov != null && previousFps != null && previousFov != null &&
+                        fps.Address == previousFps.Address && fov.Address == previousFov.Address &&
+                        fps.Value.SequenceEqual(previousFps.Value) && fov.Value.SequenceEqual(previousFov.Value);
+                    if (!unchanged) stable.Restart();
+                    previousFps = fps;
+                    previousFov = fov;
+                    if (unchanged && stable.Elapsed >= TimeSpan.FromSeconds(2))
+                    {
+                        patchReady = true;
+                        log.Write("PATCH_READY validated settings stable for 2 seconds");
+                        status.Report(new(id, "FPS / FOV ready", true));
+                    }
+                }
                 if (options.Mode == RunMode.FpsOnce && !oneShot.Attempted)
                 {
                     bool unchanged = fps != null && fov != null && previousFps != null && previousFov != null &&
@@ -201,7 +217,10 @@ internal sealed class GameSession(Options options, DiagnosticLog log, IProgress<
         // Resolve and validate each cycle; never cache pointers across launches.
         if (memory.ReadPointer(MemoryPolicy.Add(moduleBase, spec.Rva, memory.PointerSize)) != dvar)
             throw new InvalidDataException("Dvar pointer changed during validation.");
-        memory.WriteValue(valueAddress, isFloat ? BitConverter.GetBytes((float)desired) : BitConverter.GetBytes(desired));
+        byte[] desiredBytes = isFloat ? BitConverter.GetBytes((float)desired) : BitConverter.GetBytes(desired);
+        if (value.SequenceEqual(desiredBytes)) return snapshot;
+        log.Write($"APPLY {name} old={number} target={desired}");
+        memory.WriteValue(valueAddress, desiredBytes);
         return snapshot;
     }
 }

@@ -12,6 +12,7 @@ public partial class AppForm : Form
     private readonly CheckBox enableFov = new() { Text = "Enable FOV writes", AutoSize = true, Location = new(12, 168) };
     private readonly CancellationTokenSource cancellation = new();
     private Task? worker;
+    private System.Windows.Forms.Timer? testTimer;
     private PatchRequest settings = new(Guid.Empty, false, false, 300, 80);
     private Guid sessionId;
     private bool shutdownComplete;
@@ -31,13 +32,13 @@ public partial class AppForm : Form
         trackBarFPS.Size = new(151, 40);
         trackBarFPS.Minimum = 75;
         trackBarFPS.Maximum = 500;
-        trackBarFPS.Value = 300;
+        trackBarFPS.Value = options.FpsOnceTarget ?? 120;
         trackBarFPS.TickStyle = TickStyle.None;
         trackBarFOV.Location = new(50, 80);
         trackBarFOV.Size = new(151, 40);
         trackBarFOV.Minimum = 60;
         trackBarFOV.Maximum = 100;
-        trackBarFOV.Value = 80;
+        trackBarFOV.Value = options.FovTarget;
         trackBarFOV.TickStyle = TickStyle.None;
         enableFps.Enabled = enableFov.Enabled = false;
         trackBarFPS.ValueChanged += (_, _) => UpdateSettings();
@@ -52,8 +53,18 @@ public partial class AppForm : Form
         var logButton = new Button { Text = "Show log path", Location = new(12, 240), AutoSize = true };
         logButton.Click += (_, _) => MessageBox.Show(log.FilePath, "Diagnostic log");
         Controls.AddRange([trackBarFPS, trackBarFOV, enableFps, enableFov, modeLabel, logButton]);
+#if CROSSOVER_RELEASE
+        Text = "MW2 FPS / FOV — CrossOver";
+#endif
+        UpdateSettings();
         Shown += (_, _) =>
         {
+            if (options.DurationSeconds is int seconds)
+            {
+                testTimer = new System.Windows.Forms.Timer { Interval = seconds * 1000 };
+                testTimer.Tick += (_, _) => { testTimer.Stop(); log.Write("TEST_DURATION elapsed; closing utility"); Close(); };
+                testTimer.Start();
+            }
             var progress = new Progress<SessionStatus>(UpdateStatus);
             worker = Task.Run(() => new GameSession(options, log, progress,
                 () => Volatile.Read(ref settings)).RunAsync(cancellation.Token));
@@ -64,6 +75,7 @@ public partial class AppForm : Form
     private void UpdateStatus(SessionStatus status)
     {
         if (IsDisposed || cancellation.IsCancellationRequested) return;
+        bool newlyReady = status.CanPatch && (sessionId != status.Session || !enableFps.Enabled);
         if (sessionId != status.Session || !status.CanPatch)
         {
             sessionId = status.Session;
@@ -71,6 +83,12 @@ public partial class AppForm : Form
             UpdateSettings();
         }
         enableFps.Enabled = enableFov.Enabled = status.CanPatch;
+        if (newlyReady)
+        {
+            enableFps.Checked = options.AutoFps;
+            enableFov.Checked = options.AutoFov;
+            UpdateSettings();
+        }
         LabelStatusValue.Text = status.Text;
         LabelStatusValue.ForeColor = status.Session == Guid.Empty ? Color.RoyalBlue : Color.DarkGreen;
     }
@@ -91,6 +109,8 @@ public partial class AppForm : Form
         if (shutdownStarted) return;
         shutdownStarted = true;
         Enabled = false;
+        testTimer?.Stop();
+        testTimer?.Dispose();
         cancellation.Cancel();
         if (worker != null)
         {

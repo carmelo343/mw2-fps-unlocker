@@ -27,6 +27,16 @@
     <DefineConstants>$(DefineConstants);ENABLE_MEMORY_WRITES</DefineConstants>
     <AssemblyName>MW2.FPS.Unlocker.Experimental</AssemblyName>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(CrossoverRelease)' == 'true'">
+    <DefineConstants>$(DefineConstants);CROSSOVER_RELEASE</DefineConstants>
+    <AssemblyName>MW2.CrossOver.Unlocker</AssemblyName>
+    <Version>1.4.0-crossover.1</Version>
+    <AssemblyVersion>1.4.0.0</AssemblyVersion>
+    <FileVersion>1.4.0.0</FileVersion>
+  </PropertyGroup>
+  <Target Name="RequireWriteSupportForCrossoverRelease" BeforeTargets="BeforeBuild" Condition="'$(CrossoverRelease)' == 'true' And '$(EnableMemoryWrites)' != 'true'">
+    <Error Text="CrossoverRelease requires EnableMemoryWrites=true." />
+  </Target>
   <ItemGroup>
     <Compile Remove="tests/**/*.cs" />
   </ItemGroup>

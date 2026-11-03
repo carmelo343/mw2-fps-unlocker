@@ -22,6 +22,11 @@ Check(Options.Parse([]).Mode == RunMode.Detect, "default mode only detects");
 Check(Options.Parse(["--mode", "read-only"]).Mode == RunMode.ReadOnly, "read-only mode parsed");
 #if ENABLE_MEMORY_WRITES
 Check(Options.Parse(["--mode", "patch", "--profile", "unused"]).Mode == RunMode.Patch, "experimental patch mode requires explicit selection");
+var fovPatch = Options.Parse(["--mode", "patch", "--profile", "unused", "--enable-fov", "--fov", "80", "--duration", "30"]);
+Check(fovPatch.AutoFov && !fovPatch.AutoFps && fovPatch.DurationSeconds == 30, "FOV-only timed test never auto-enables FPS");
+var bothPatch = Options.Parse(["--mode", "patch", "--profile", "unused", "--enable-fps", "--enable-fov", "--fps", "120", "--fov", "80"]);
+Check(bothPatch.AutoFps && bothPatch.AutoFov && bothPatch.FpsOnceTarget == 120 && bothPatch.FovTarget == 80, "combined patch targets parsed independently");
+Reject(() => Options.Parse(["--mode", "patch", "--profile", "unused", "--duration", "0"]), "unbounded zero-duration test rejected");
 var once = Options.Parse(["--mode", "fps-once", "--fps", "120", "--profile", "unused"]);
 Check(once.Mode == RunMode.FpsOnce && once.FpsOnceTarget == 120, "experimental single-write mode requires explicit FPS target");
 Check(Options.Parse(["--mode", "fps-once", "--fps", "current", "--profile", "unused"]).FpsOnceUseCurrent, "same-value test uses fresh current value rather than assuming 85");
@@ -35,7 +40,7 @@ Reject(() => Options.Parse(["--mode", "fps-once", "--fps", "120", "--profile", "
 Reject(() => Options.Parse(["--mode", "read-only", "--fps", "current"]), "same-value keyword cannot arm a read-only run");
 Reject(() => Options.Parse(["--fps", "120"]), "FPS argument cannot arm default detect mode");
 Reject(() => Options.Parse(["--mode"]), "missing mode rejected");
-Reject(() => Options.Parse(["--enable-fps"]), "unknown flags rejected");
+Reject(() => Options.Parse(["--not-a-real-option"]), "unknown flags rejected");
 var budget = new OneShotBudget();
 Check(!budget.Attempted && budget.TryConsume(), "single-write budget starts available");
 Check(budget.Attempted && !budget.TryConsume() && !budget.TryConsume(), "single-write attempt cannot rearm across cycles or launches");

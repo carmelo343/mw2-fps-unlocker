@@ -1,0 +1,18 @@
+{
+  "Sha256": "926F8A47959F2B24420898D07F599883E0866050D42D5289F94EEF546A4A3492",
+  "PointerSize": 8,
+  "Fps": {
+    "Rva": 30564520,
+    "NamePointerOffset": 0,
+    "TypeOffset": 12,
+    "Type": 5,
+    "ValueOffset": 16
+  },
+  "Fov": {
+    "Rva": 8428664,
+    "NamePointerOffset": 0,
+    "TypeOffset": 12,
+    "Type": 1,
+    "ValueOffset": 16
+  }
+}
