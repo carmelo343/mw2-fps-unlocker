@@ -43,3 +43,7 @@ Test command templates for the separately packaged experimental folder, **not co
 The `current` keyword takes the freshly revalidated current value for the first test; it does not assume that the earlier value of 85 is still present. The workspace candidate profile was verified only for reads on executable SHA-256 `926F8A47959F2B24420898D07F599883E0866050D42D5289F94EEF546A4A3492`; it is not labelled write-validated or shipped as a trusted public profile.
 
 Game-memory modification can crash the game and carries VAC/account risk. A menu or offline session is not a guarantee of safety. No protection changes, injection, anti-cheat disabling, stealth or bypass is part of this plan. Authorization and an appropriate test environment must be established before game writes. No original values are automatically written back at detach; restart the game to reset state.
+
+## Final build validation
+
+[CI run 41553825461](https://github.com/carmelo343/mw2-fps-unlocker/actions/runs/41553825461) passed for source commit `a6b953c` on macOS and Windows. The diagnostic safety harness passed 35 checks on macOS and 38 on Windows; the experimental parser/budget harness passed 39 on macOS and 42 on Windows. The disposable native write probe also passed on Windows. The separately compiled experimental build had zero warnings/errors, and the normal diagnostic assembly again passed its no-native-write-import check. These checks do not test a live game write.

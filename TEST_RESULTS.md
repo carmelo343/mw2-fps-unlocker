@@ -26,3 +26,5 @@ CI evidence: [successful run 41547424745](https://github.com/carmelo343/mw2-fps-
 Build checks do not establish runtime compatibility. The diagnostic artifact intentionally cannot modify game memory. The experimental code is scaffolding for a later verified profile, not a compatibility claim.
 
 Later user-authorized live evidence is documented in [RUNTIME_TEST_RESULTS.md](RUNTIME_TEST_RESULTS.md). These main-menu tests do not establish online-match stability, VAC safety, or memory-write compatibility.
+
+The later write-path preparation is recorded in [WRITE_TEST_PLAN.md](WRITE_TEST_PLAN.md): the disposable child-process write probe passed in CrossOver and Windows CI. Updated diagnostic checks passed 35/38 (macOS/Windows), and experimental parser/budget checks passed 39/42. Game-memory writes remain untested.
