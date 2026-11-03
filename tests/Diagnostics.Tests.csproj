@@ -5,7 +5,11 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(EnableMemoryWrites)' == 'true'">
+    <DefineConstants>$(DefineConstants);ENABLE_MEMORY_WRITES</DefineConstants>
+  </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="WriteProbe/**/*.cs" />
     <Compile Include="../Core/*.cs" Link="Core/%(Filename)%(Extension)" />
     <Compile Include="../Memory/MemoryHandler.cs" Link="MemoryHandler.cs" />
     <Compile Include="../Diagnostics/DiagnosticLog.cs" Link="DiagnosticLog.cs" />
