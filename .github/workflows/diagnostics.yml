@@ -37,6 +37,27 @@ jobs:
         run: dotnet run --project tests/Diagnostics.Tests.csproj -c Release -p:EnableMemoryWrites=true -p:CrossoverRelease=true
       - name: Compile CrossOver convenience release
         run: dotnet build mw2-fps-unlocker.csproj -c Release -p:EnableMemoryWrites=true -p:CrossoverRelease=true
+      - name: Publish single-file portable release
+        if: runner.os == 'Windows'
+        run: ./scripts/build-portable.ps1
+      - name: Isolated portable startup with no companion files
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory artifacts/portable-alone -Force | Out-Null
+          Copy-Item artifacts/portable-win-x64/MW2.CrossOver.Unlocker.exe artifacts/portable-alone/
+          $portable = Start-Process -FilePath ./artifacts/portable-alone/MW2.CrossOver.Unlocker.exe -ArgumentList '--mode', 'detect', '--duration', '5', '--log-dir', 'artifacts/portable-smoke-logs' -WorkingDirectory (Get-Location).Path -PassThru
+          if (-not $portable.WaitForExit(30000)) { $portable.Kill(); throw "Portable startup timed out" }
+          if ($portable.ExitCode -ne 0) { throw "Portable startup failed" }
+          $logs = Get-Content artifacts/portable-smoke-logs/*.log
+          $logs
+          if (-not ($logs -match 'STOP clean shutdown')) { throw "Portable clean shutdown not recorded" }
+          if (@(Get-ChildItem artifacts/portable-alone -File).Count -ne 1) { throw "Companion files unexpectedly required" }
+      - uses: actions/upload-artifact@v4
+        if: runner.os == 'Windows'
+        with:
+          name: MW2-CrossOver-portable-exe
+          path: artifacts/portable-win-x64/MW2.CrossOver.Unlocker.exe
       - name: Publish diagnostic-only build
         run: dotnet publish mw2-fps-unlocker.csproj -c Release -r win-x64 --self-contained true -p:EnableMemoryWrites=false -p:PublishSingleFile=false -p:PublishReadyToRun=false -p:PublishTrimmed=false -o artifacts/diagnostic-win-x64
       - name: Verify distributed assembly has no native write import

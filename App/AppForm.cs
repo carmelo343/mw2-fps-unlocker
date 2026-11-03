@@ -52,7 +52,14 @@ public partial class AppForm : Form
             : "Diagnostic mode: no game-memory writes.", AutoSize = true, Location = new(12, 208) };
         var logButton = new Button { Text = "Show log path", Location = new(12, 240), AutoSize = true };
         logButton.Click += (_, _) => MessageBox.Show(log.FilePath, "Diagnostic log");
-        Controls.AddRange([trackBarFPS, trackBarFOV, enableFps, enableFov, modeLabel, logButton]);
+        var licenseButton = new Button { Text = "License", Location = new(150, 240), AutoSize = true };
+        licenseButton.Click += (_, _) =>
+        {
+            using var stream = typeof(AppForm).Assembly.GetManifestResourceStream("mw2_fps_unlocker.LICENSE")!;
+            using var reader = new StreamReader(stream);
+            MessageBox.Show(reader.ReadToEnd(), "MIT License");
+        };
+        Controls.AddRange([trackBarFPS, trackBarFOV, enableFps, enableFov, modeLabel, logButton, licenseButton]);
 #if CROSSOVER_RELEASE
         Text = "MW2 FPS / FOV — CrossOver";
 #endif

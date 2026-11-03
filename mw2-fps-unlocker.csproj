@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <Content Include="gnome-ico.ico" />
+    <EmbeddedResource Include="LICENSE" LogicalName="mw2_fps_unlocker.LICENSE" />
   </ItemGroup>
 
   <PropertyGroup Condition="'$(EnableMemoryWrites)' == 'true'">
@@ -30,10 +31,13 @@
   <PropertyGroup Condition="'$(CrossoverRelease)' == 'true'">
     <DefineConstants>$(DefineConstants);CROSSOVER_RELEASE</DefineConstants>
     <AssemblyName>MW2.CrossOver.Unlocker</AssemblyName>
-    <Version>1.4.0-crossover.1</Version>
-    <AssemblyVersion>1.4.0.0</AssemblyVersion>
-    <FileVersion>1.4.0.0</FileVersion>
+    <Version>1.4.1-crossover.1</Version>
+    <AssemblyVersion>1.4.1.0</AssemblyVersion>
+    <FileVersion>1.4.1.0</FileVersion>
   </PropertyGroup>
+  <ItemGroup Condition="'$(CrossoverRelease)' == 'true'">
+    <EmbeddedResource Include="profiles/mw2-profile.json" LogicalName="mw2_fps_unlocker.mw2-profile.json" />
+  </ItemGroup>
   <Target Name="RequireWriteSupportForCrossoverRelease" BeforeTargets="BeforeBuild" Condition="'$(CrossoverRelease)' == 'true' And '$(EnableMemoryWrites)' != 'true'">
     <Error Text="CrossoverRelease requires EnableMemoryWrites=true." />
   </Target>

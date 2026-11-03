@@ -11,6 +11,9 @@
   <PropertyGroup Condition="'$(CrossoverRelease)' == 'true'">
     <DefineConstants>$(DefineConstants);CROSSOVER_RELEASE</DefineConstants>
   </PropertyGroup>
+  <ItemGroup Condition="'$(CrossoverRelease)' == 'true'">
+    <EmbeddedResource Include="../profiles/mw2-profile.json" LogicalName="mw2_fps_unlocker.mw2-profile.json" />
+  </ItemGroup>
   <ItemGroup>
     <Compile Remove="WriteProbe/**/*.cs" />
     <Compile Include="../Core/*.cs" Link="Core/%(Filename)%(Extension)" />

@@ -8,7 +8,7 @@ internal sealed record Options(RunMode Mode, string? ProfilePath, string? LogDir
     {
 #if CROSSOVER_RELEASE
         if (args.Length == 0)
-            return new(RunMode.Patch, Path.Combine(AppContext.BaseDirectory, "mw2-profile.json"), null, 120, false, 80, true, true);
+            return new(RunMode.Patch, GameProfile.EmbeddedProfile, null, 120, false, 80, true, true);
 #endif
         var mode = RunMode.Detect;
         string? profile = null, logs = null;
@@ -70,8 +70,8 @@ internal sealed record Options(RunMode Mode, string? ProfilePath, string? LogDir
             throw new ArgumentException("fps-once requires an explicit --fps target.");
         if (mode != RunMode.FpsOnce && mode != RunMode.Patch && (fps != null || useCurrent))
             throw new ArgumentException("--fps requires patch or fps-once mode.");
-        if (mode != RunMode.Patch && (fovProvided || autoFps || autoFov || duration != null))
-            throw new ArgumentException("FOV, auto-enable and duration arguments require patch mode.");
+        if (mode != RunMode.Patch && (fovProvided || autoFps || autoFov))
+            throw new ArgumentException("FOV and auto-enable arguments require patch mode.");
         if (mode == RunMode.Patch && useCurrent)
             throw new ArgumentException("Patch mode needs a numeric FPS target.");
         return new(mode, profile, logs, fps, useCurrent, fov, autoFps, autoFov, duration);

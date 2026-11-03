@@ -20,11 +20,14 @@ void Reject(Action action, string name)
 
 #if CROSSOVER_RELEASE
 var releaseDefaults = Options.Parse([]);
-Check(releaseDefaults.Mode == RunMode.Patch && releaseDefaults.AutoFps && releaseDefaults.AutoFov && releaseDefaults.FpsOnceTarget == 120 && releaseDefaults.FovTarget == 80 && releaseDefaults.ProfilePath!.EndsWith("mw2-profile.json"), "CrossOver release defaults apply only the packaged exact-game profile at 120/80");
+Check(releaseDefaults.Mode == RunMode.Patch && releaseDefaults.AutoFps && releaseDefaults.AutoFov && releaseDefaults.FpsOnceTarget == 120 && releaseDefaults.FovTarget == 80 && releaseDefaults.ProfilePath == GameProfile.EmbeddedProfile, "CrossOver release defaults apply only the embedded exact-game profile at 120/80");
+var embedded = GameProfile.Load(GameProfile.EmbeddedProfile);
+Check(embedded.PointerSize == 8 && embedded.Sha256 == "926F8A47959F2B24420898D07F599883E0866050D42D5289F94EEF546A4A3492", "embedded profile identity loads without a sidecar JSON");
 #else
 Check(Options.Parse([]).Mode == RunMode.Detect, "default mode only detects");
 #endif
 Check(Options.Parse(["--mode", "read-only"]).Mode == RunMode.ReadOnly, "read-only mode parsed");
+Check(Options.Parse(["--mode", "read-only", "--duration", "5"]).DurationSeconds == 5, "portable read-only smoke test can shut down automatically");
 #if ENABLE_MEMORY_WRITES
 Check(Options.Parse(["--mode", "patch", "--profile", "unused"]).Mode == RunMode.Patch, "experimental patch mode requires explicit selection");
 var fovPatch = Options.Parse(["--mode", "patch", "--profile", "unused", "--enable-fov", "--fov", "80", "--duration", "30"]);
