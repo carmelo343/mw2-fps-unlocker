@@ -2,6 +2,8 @@
 
 The FPS/FOV edition passed a short in-game test at **FPS-cap setting 120 / FOV 80**, including correcting resets of both settings. See [CROSSOVER_RESULTS.md](CROSSOVER_RESULTS.md) for exact evidence and limits.
 
+The single-file edition needs only its EXE; see [PORTABLE_RELEASE.md](PORTABLE_RELEASE.md). The profile is embedded in current release builds.
+
 ## Run
 
 1. Extract the complete CrossOver unlocker folder somewhere separate from the game installation.
@@ -20,7 +22,7 @@ Install the SDK pinned in `global.json` and run:
 ./scripts/build-crossover.sh
 ```
 
-Output: `artifacts/crossover-win-x64`. Copy the entire directory, including `mw2-profile.json`. The script bundles Windows x64 .NET/WinForms, so a separate .NET install inside the bottle is not required. Microsoft Windows targeting/runtime packs require NuGet access. The MIT license and upstream copyright remain unchanged.
+Output: `artifacts/crossover-win-x64`. Copy the entire directory, including the runtime files for folder builds. The portable build instead bundles everything into the EXE. The script bundles Windows x64 .NET/WinForms, so a separate .NET install inside the bottle is not required. Microsoft Windows targeting/runtime packs require NuGet access. The MIT license and upstream copyright remain unchanged.
 
 `./scripts/build.sh` builds the separate diagnostic-only edition with no native memory-write import. The experimental build retains explicit patch/single-write modes and optional `--duration` for automatic test shutdown. Use diagnostic `--mode detect` or `--mode read-only` if investigating another game build.
 
