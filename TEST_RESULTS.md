@@ -31,3 +31,5 @@ Later user-authorized live evidence is documented in [RUNTIME_TEST_RESULTS.md](R
 The later write-path preparation is recorded in [WRITE_TEST_PLAN.md](WRITE_TEST_PLAN.md): the disposable child-process write probe passed in CrossOver and Windows CI. Updated diagnostic checks passed 35/38 (macOS/Windows), and experimental parser/budget checks passed 39/42. The later authorized FPS-only single-write results are recorded in [FPS_WRITE_RESULTS.md](FPS_WRITE_RESULTS.md); further write stages remain untested.
 
 The FPS write session completed two successful four-byte writes and 1,712 successful reads with zero logged API failures/exceptions. Actual rendered frame rate was not measured. The game and experimental utilities were closed cleanly.
+
+Latest result: [CROSSOVER_RESULTS.md](CROSSOVER_RESULTS.md). FOV-only and combined FPS/FOV tests passed, both reset corrections were observed, wider FOV was confirmed in-game, and the regular no-argument build started successfully. Earlier untested-stage statements above describe prior checkpoints.

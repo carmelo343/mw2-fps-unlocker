@@ -1,18 +1,15 @@
-# MW2 2009 FPS/FOV Unlocker — CrossOver investigation
+# MW2 FPS / FOV Unlocker — CrossOver edition
 
-This MIT-licensed fork of [andersblomqvist/mw2-fps-unlocker](https://github.com/andersblomqvist/mw2-fps-unlocker) adds staged diagnostics for Steam MW2 (2009) multiplayer running in Wine/CrossOver.
+A fork of [andersblomqvist/mw2-fps-unlocker](https://github.com/andersblomqvist/mw2-fps-unlocker) with working FPS/FOV controls in a short in-game CrossOver test on Apple Silicon.
 
-**Detection, read-only inspection and two FPS-only single writes passed limited CrossOver main-menu tests. The 120 FPS setting reverted to 85 after about 85 seconds; sustained FPS control, FOV writes and gameplay stability remain untested. The default build cannot write game memory.** It starts in detection-only mode; `--mode read-only` adds validated module/header inspection and timestamped API logs. Neither mode applies FPS or FOV changes.
+The ready-to-run CrossOver build starts at **120 FPS cap / 80 FOV**, keeps both settings applied when MW2 resets them, and retains the FPS/FOV sliders and independent apply switches. It validates the exact executable and dvar layout before writing, and skips writes when values already match. Unknown game builds are rejected.
 
-Read [CROSSOVER.md](CROSSOVER.md) for build/run commands, the source-based crash hypothesis, the incremental test procedure, and limitations. [TEST_RESULTS.md](TEST_RESULTS.md) distinguishes completed build checks from pending game testing.
+Run `MW2.CrossOver.Unlocker.exe` inside the same **Steam** CrossOver bottle as MW2. No arguments are needed. Keep the utility open while playing and keep its entire folder together. See [CROSSOVER.md](CROSSOVER.md) for setup and [CROSSOVER_RESULTS.md](CROSSOVER_RESULTS.md) for the tested environment and limitations.
 
 ```sh
-dotnet run --project tests/Diagnostics.Tests.csproj -c Release
-./scripts/build.sh
+./scripts/build-crossover.sh
 ```
 
-Requires the .NET SDK pinned in `global.json` and Python 3 for the read-only assembly check. Builds a self-contained Windows x64 folder on macOS or Windows (`scripts/build.ps1`); keep all published files beside the executable. No game files are replaced.
+Uses SDK 10.0.403 and builds a self-contained Windows x64 folder. The separate diagnostic build, `./scripts/build.sh`, still cannot write game memory. `scripts/build-experimental.sh` provides explicitly selected diagnostic/test modes.
 
-The original FPS/FOV ranges and polling functionality remain in an experimental source path, requiring a separately enabled build, an independently verified exact-executable profile, explicit patch mode, and individual GUI toggles. No profile is shipped. Do not test writes against a live game without explicit authorization for that stage. No VAC safety claim, anti-cheat bypass, injection or stealth behavior is provided.
-
-The write experiment is documented in [WRITE_TEST_PLAN.md](WRITE_TEST_PLAN.md), with completed live evidence in [FPS_WRITE_RESULTS.md](FPS_WRITE_RESULTS.md). Further repeated-FPS or FOV writes require separate stage approval.
+Tested defaults: FPS-cap setting 120 and FOV 80, CrossOver 26.3 on macOS 26.5.1 / Apple Silicon, exact Steam executable SHA-256 recorded in `profiles/mw2-profile.json`. Wider FOV was confirmed in-game. Actual rendered FPS and long-term stability were not measured; other slider targets were not exhaustively tested. No VAC-safety guarantee, anti-cheat bypass, injection or stealth behavior is provided. MIT license retained.
