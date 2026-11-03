@@ -8,6 +8,9 @@
   <PropertyGroup Condition="'$(EnableMemoryWrites)' == 'true'">
     <DefineConstants>$(DefineConstants);ENABLE_MEMORY_WRITES</DefineConstants>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(CrossoverRelease)' == 'true'">
+    <DefineConstants>$(DefineConstants);CROSSOVER_RELEASE</DefineConstants>
+  </PropertyGroup>
   <ItemGroup>
     <Compile Remove="WriteProbe/**/*.cs" />
     <Compile Include="../Core/*.cs" Link="Core/%(Filename)%(Extension)" />

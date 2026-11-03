@@ -18,7 +18,12 @@ void Reject(Action action, string name)
     throw new Exception("FAILED: expected rejection: " + name);
 }
 
+#if CROSSOVER_RELEASE
+var releaseDefaults = Options.Parse([]);
+Check(releaseDefaults.Mode == RunMode.Patch && releaseDefaults.AutoFps && releaseDefaults.AutoFov && releaseDefaults.FpsOnceTarget == 120 && releaseDefaults.FovTarget == 80 && releaseDefaults.ProfilePath!.EndsWith("mw2-profile.json"), "CrossOver release defaults apply only the packaged exact-game profile at 120/80");
+#else
 Check(Options.Parse([]).Mode == RunMode.Detect, "default mode only detects");
+#endif
 Check(Options.Parse(["--mode", "read-only"]).Mode == RunMode.ReadOnly, "read-only mode parsed");
 #if ENABLE_MEMORY_WRITES
 Check(Options.Parse(["--mode", "patch", "--profile", "unused"]).Mode == RunMode.Patch, "experimental patch mode requires explicit selection");

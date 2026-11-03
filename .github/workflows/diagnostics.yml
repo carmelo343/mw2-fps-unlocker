@@ -33,6 +33,8 @@ jobs:
           if ($probe.ExitCode -ne 0) { throw "Disposable write probe failed" }
       - name: Compile experimental path (no game; not distributed)
         run: dotnet build mw2-fps-unlocker.csproj -c Release -p:EnableMemoryWrites=true
+      - name: Check CrossOver release defaults
+        run: dotnet run --project tests/Diagnostics.Tests.csproj -c Release -p:EnableMemoryWrites=true -p:CrossoverRelease=true
       - name: Compile CrossOver convenience release
         run: dotnet build mw2-fps-unlocker.csproj -c Release -p:EnableMemoryWrites=true -p:CrossoverRelease=true
       - name: Publish diagnostic-only build
