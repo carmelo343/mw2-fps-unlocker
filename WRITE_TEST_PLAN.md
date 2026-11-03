@@ -1,6 +1,6 @@
-# Write-path experiment: prepared, not run against MW2
+# Write-path experiment: plan and recorded results
 
-The user originally required explicit authorization at each live-memory testing stage. The work below prepares that stage; it does not establish authorization to run it.
+The user explicitly authorized and completed the two FPS-only single-write tests described below. Results are in [FPS_WRITE_RESULTS.md](FPS_WRITE_RESULTS.md). That authorization does not cover further repeated-FPS, FOV or combined write tests.
 
 ## Completed disposable-process test
 
@@ -27,20 +27,20 @@ Build only:
 ./scripts/build-experimental.sh
 ```
 
-Proposed live tests, **pending explicit approval**:
+Test sequence (steps 1 and 2 completed after explicit approval; step 3 remains pending):
 
 1. Start MW2 normally and confirm a responsive main menu. Start one experimental utility in `fps-once` mode to write the current FPS value back unchanged using `--fps current` (it was observed as 85 in earlier reads). Observe stability and the log; stop on any error.
 2. If approved and the first test is stable, close the utility and run a new single-write experiment targeting 120 FPS. Confirm native readback and whether the value persists. FPS readback alone does not establish rendered frame rate; that needs a separate in-game measurement. Do not assume a one-time write will persist—the engine may reset it.
 3. Only after reviewing results, consider bounded repeated FPS writes, followed by a separately authorized FOV-only test. Do not immediately enable both continuous toggles.
 
-Test command templates for the separately packaged experimental folder, **not commands to run before approval**:
+Test command templates for the separately packaged experimental folder, **reruns require appropriate stage authorization**:
 
 ```text
 "<folder>\MW2.FPS.Unlocker.Experimental.exe" --mode fps-once --fps current --profile "<profile>" --log-dir "C:\mw2-fps-once-logs"
 "<folder>\MW2.FPS.Unlocker.Experimental.exe" --mode fps-once --fps 120 --profile "<profile>" --log-dir "C:\mw2-fps-once-logs"
 ```
 
-The `current` keyword takes the freshly revalidated current value for the first test; it does not assume that the earlier value of 85 is still present. The workspace candidate profile was verified only for reads on executable SHA-256 `926F8A47959F2B24420898D07F599883E0866050D42D5289F94EEF546A4A3492`; it is not labelled write-validated or shipped as a trusted public profile.
+The `current` keyword takes the freshly revalidated current value for the first test; it does not assume that the earlier value of 85 is still present. Before the live tests, the workspace candidate profile was verified only for reads on executable SHA-256 `926F8A47959F2B24420898D07F599883E0866050D42D5289F94EEF546A4A3492`; its FPS field has now passed the two limited single-write tests, while FOV writes remain untested. It is not shipped as a fully validated public FPS/FOV profile.
 
 Game-memory modification can crash the game and carries VAC/account risk. A menu or offline session is not a guarantee of safety. No protection changes, injection, anti-cheat disabling, stealth or bypass is part of this plan. Authorization and an appropriate test environment must be established before game writes. No original values are automatically written back at detach; restart the game to reset state.
 

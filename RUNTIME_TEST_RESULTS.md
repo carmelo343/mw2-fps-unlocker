@@ -1,4 +1,6 @@
-# CrossOver runtime test results
+# CrossOver read-only runtime test results
+
+This record covers the earlier read-only session. Later authorized FPS-only writes are documented in [FPS_WRITE_RESULTS.md](FPS_WRITE_RESULTS.md).
 
 3 November 2026, Australia/Sydney. Tests used the existing Steam bottle. The agent launched the applications through CrossOver and inspected diagnostic logs; the user confirmed the responsive game menu and performed normal closes because the computer-control tool could not access Wine-hosted windows.
 
