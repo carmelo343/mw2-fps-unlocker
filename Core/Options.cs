@@ -2,13 +2,14 @@ namespace mw2_fps_unlocker.Core;
 
 internal enum RunMode { Detect, ReadOnly, Patch, FpsOnce }
 
-internal sealed record Options(RunMode Mode, string? ProfilePath, string? LogDirectory, int? FpsOnceTarget = null)
+internal sealed record Options(RunMode Mode, string? ProfilePath, string? LogDirectory, int? FpsOnceTarget = null, bool FpsOnceUseCurrent = false)
 {
     internal static Options Parse(string[] args)
     {
         var mode = RunMode.Detect;
         string? profile = null, logs = null;
         int? fps = null;
+        bool useCurrent = false;
         for (int i = 0; i < args.Length; i++)
         {
             string Value() => ++i < args.Length ? args[i] : throw new ArgumentException($"Missing value for {args[i - 1]}");
@@ -25,9 +26,15 @@ internal sealed record Options(RunMode Mode, string? ProfilePath, string? LogDir
                     };
                     break;
                 case "--fps":
-                    if (!int.TryParse(Value(), out int target) || target is < 75 or > 500)
-                        throw new ArgumentException("FPS target must be an integer between 75 and 500.");
-                    fps = target;
+                    string targetText = Value();
+                    useCurrent = targetText == "current";
+                    if (useCurrent) fps = null;
+                    else
+                    {
+                        if (!int.TryParse(targetText, out int target) || target is < 75 or > 500)
+                            throw new ArgumentException("FPS target must be 'current' or an integer between 75 and 500.");
+                        fps = target;
+                    }
                     break;
                 case "--profile": profile = Value(); break;
                 case "--log-dir": logs = Value(); break;
@@ -40,10 +47,10 @@ internal sealed record Options(RunMode Mode, string? ProfilePath, string? LogDir
 #endif
         if (mode is (RunMode.Patch or RunMode.FpsOnce) && profile == null)
             throw new ArgumentException("Patch mode requires an independently verified --profile file.");
-        if (mode == RunMode.FpsOnce && fps == null)
+        if (mode == RunMode.FpsOnce && fps == null && !useCurrent)
             throw new ArgumentException("fps-once requires an explicit --fps target.");
-        if (mode != RunMode.FpsOnce && fps != null)
+        if (mode != RunMode.FpsOnce && (fps != null || useCurrent))
             throw new ArgumentException("--fps is only accepted with --mode fps-once.");
-        return new(mode, profile, logs, fps);
+        return new(mode, profile, logs, fps, useCurrent);
     }
 }

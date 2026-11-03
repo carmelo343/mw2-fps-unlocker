@@ -45,7 +45,7 @@ public partial class AppForm : Form
         enableFps.CheckedChanged += (_, _) => UpdateSettings();
         enableFov.CheckedChanged += (_, _) => UpdateSettings();
         var modeLabel = new Label { Text = options.Mode == RunMode.FpsOnce
-            ? $"ONE FPS write to {options.FpsOnceTarget}; FOV stays read-only."
+            ? $"ONE FPS write to {(options.FpsOnceUseCurrent ? "current value" : options.FpsOnceTarget.ToString())}; FOV stays read-only."
             : options.Mode == RunMode.Patch
             ? "Experimental writes require a matching profile and explicit toggles."
             : "Diagnostic mode: no game-memory writes.", AutoSize = true, Location = new(12, 208) };

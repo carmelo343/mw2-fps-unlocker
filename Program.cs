@@ -18,7 +18,7 @@ internal static class Program
 #if ENABLE_MEMORY_WRITES
             log.Write("BUILD experimental write support compiled in; continuous-write toggles start OFF");
             if (options.Mode == RunMode.FpsOnce)
-                log.Write($"ARMED FPS_ONCE target={options.FpsOnceTarget}; one attempt after 10 seconds of stable validated dvars; FOV read-only");
+                log.Write($"ARMED FPS_ONCE target={(options.FpsOnceUseCurrent ? "current (unchanged)" : options.FpsOnceTarget.ToString())}; one attempt after 10 seconds of stable validated dvars; FOV read-only");
 #else
             log.Write("BUILD diagnostic-only; native write API absent");
 #endif
@@ -30,7 +30,7 @@ internal static class Program
         catch (Exception ex)
         {
             log?.Exception("Fatal", ex);
-            MessageBox.Show($"{ex.Message}\n\nLog: {log?.FilePath ?? "not created"}\n\nArguments: --mode detect|read-only [--log-dir DIRECTORY]\nExperimental builds only: --mode patch --profile FILE or --mode fps-once --fps N --profile FILE",
+            MessageBox.Show($"{ex.Message}\n\nLog: {log?.FilePath ?? "not created"}\n\nArguments: --mode detect|read-only [--log-dir DIRECTORY]\nExperimental builds only: --mode patch --profile FILE or --mode fps-once --fps current|N --profile FILE",
                 "MW2 diagnostics", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
         finally { log?.Dispose(); }

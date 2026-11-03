@@ -24,6 +24,7 @@ Check(Options.Parse(["--mode", "read-only"]).Mode == RunMode.ReadOnly, "read-onl
 Check(Options.Parse(["--mode", "patch", "--profile", "unused"]).Mode == RunMode.Patch, "experimental patch mode requires explicit selection");
 var once = Options.Parse(["--mode", "fps-once", "--fps", "120", "--profile", "unused"]);
 Check(once.Mode == RunMode.FpsOnce && once.FpsOnceTarget == 120, "experimental single-write mode requires explicit FPS target");
+Check(Options.Parse(["--mode", "fps-once", "--fps", "current", "--profile", "unused"]).FpsOnceUseCurrent, "same-value test uses fresh current value rather than assuming 85");
 Reject(() => Options.Parse(["--mode", "fps-once", "--profile", "unused"]), "single write cannot use an implicit target");
 Reject(() => Options.Parse(["--mode", "fps-once", "--fps", "120"]), "single write requires exact executable profile");
 Reject(() => Options.Parse(["--mode", "fps-once", "--fps", "501", "--profile", "unused"]), "out-of-range single-write target rejected");
@@ -31,6 +32,7 @@ Reject(() => Options.Parse(["--mode", "fps-once", "--fps", "501", "--profile", "
 Reject(() => Options.Parse(["--mode", "patch", "--profile", "unused"]), "diagnostic build rejects patch mode");
 Reject(() => Options.Parse(["--mode", "fps-once", "--fps", "120", "--profile", "unused"]), "diagnostic build rejects single FPS write mode");
 #endif
+Reject(() => Options.Parse(["--mode", "read-only", "--fps", "current"]), "same-value keyword cannot arm a read-only run");
 Reject(() => Options.Parse(["--fps", "120"]), "FPS argument cannot arm default detect mode");
 Reject(() => Options.Parse(["--mode"]), "missing mode rejected");
 Reject(() => Options.Parse(["--enable-fps"]), "unknown flags rejected");

@@ -122,12 +122,14 @@ internal sealed class GameSession(Options options, DiagnosticLog log, IProgress<
                         cancellation.ThrowIfCancellationRequested();
                         if (oneShot.TryConsume())
                         {
-                            log.Write($"FPS_ONCE attempt=1 old={BitConverter.ToInt32(fps!.Value)} target={options.FpsOnceTarget} fovBefore={BitConverter.ToSingle(fov!.Value)}; no FOV write; no repeat on restart");
+                            log.Write($"FPS_ONCE attempt=1 old={BitConverter.ToInt32(fps!.Value)} target={(options.FpsOnceUseCurrent ? "current (unchanged)" : options.FpsOnceTarget.ToString())} fovBefore={BitConverter.ToSingle(fov!.Value)}; no FOV write; no repeat on restart");
                             // Fresh name/type/pointer/value validation immediately before the one write.
                             var fresh = InspectDvar(memory, module.BaseAddress, profile.Fps, "com_maxfps", false, false, 0);
                             if (fresh == null || fresh.Address != fps.Address || !fresh.Value.SequenceEqual(fps.Value))
                                 throw new InvalidDataException("FPS changed before the single-write attempt.");
-                            memory.WriteValue(fresh.Address, BitConverter.GetBytes(options.FpsOnceTarget!.Value));
+                            int target = options.FpsOnceUseCurrent ? BitConverter.ToInt32(fresh.Value) : options.FpsOnceTarget!.Value;
+                            log.Write($"FPS_ONCE resolvedTarget={target} baseline={BitConverter.ToInt32(fresh.Value)} sameValue={options.FpsOnceUseCurrent}");
+                            memory.WriteValue(fresh.Address, BitConverter.GetBytes(target));
                             var fovAfter = InspectDvar(memory, module.BaseAddress, profile.Fov, "cg_fov", true, false, 0);
                             log.Write($"FPS_ONCE completed; fovAfter={(fovAfter == null ? "UNAVAILABLE" : BitConverter.ToSingle(fovAfter.Value).ToString())}; subsequent cycles read-only");
                             status.Report(new(id, "FPS single write completed — observing"));
