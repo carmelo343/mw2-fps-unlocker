@@ -25,6 +25,7 @@
 
   <PropertyGroup Condition="'$(EnableMemoryWrites)' == 'true'">
     <DefineConstants>$(DefineConstants);ENABLE_MEMORY_WRITES</DefineConstants>
+    <AssemblyName>MW2.FPS.Unlocker.Experimental</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="tests/**/*.cs" />

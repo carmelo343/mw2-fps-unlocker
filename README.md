@@ -14,3 +14,5 @@ dotnet run --project tests/Diagnostics.Tests.csproj -c Release
 Requires the .NET SDK pinned in `global.json` and Python 3 for the read-only assembly check. Builds a self-contained Windows x64 folder on macOS or Windows (`scripts/build.ps1`); keep all published files beside the executable. No game files are replaced.
 
 The original FPS/FOV ranges and polling functionality remain in an experimental source path, requiring a separately enabled build, an independently verified exact-executable profile, explicit patch mode, and individual GUI toggles. No profile is shipped. Do not test writes against a live game without explicit authorization for that stage. No VAC safety claim, anti-cheat bypass, injection or stealth behavior is provided.
+
+The next staged write experiment and the completed disposable-process write test are documented in [WRITE_TEST_PLAN.md](WRITE_TEST_PLAN.md). Live game writes remain pending explicit approval.

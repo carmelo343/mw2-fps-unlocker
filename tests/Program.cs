@@ -20,9 +20,23 @@ void Reject(Action action, string name)
 
 Check(Options.Parse([]).Mode == RunMode.Detect, "default mode only detects");
 Check(Options.Parse(["--mode", "read-only"]).Mode == RunMode.ReadOnly, "read-only mode parsed");
+#if ENABLE_MEMORY_WRITES
+Check(Options.Parse(["--mode", "patch", "--profile", "unused"]).Mode == RunMode.Patch, "experimental patch mode requires explicit selection");
+var once = Options.Parse(["--mode", "fps-once", "--fps", "120", "--profile", "unused"]);
+Check(once.Mode == RunMode.FpsOnce && once.FpsOnceTarget == 120, "experimental single-write mode requires explicit FPS target");
+Reject(() => Options.Parse(["--mode", "fps-once", "--profile", "unused"]), "single write cannot use an implicit target");
+Reject(() => Options.Parse(["--mode", "fps-once", "--fps", "120"]), "single write requires exact executable profile");
+Reject(() => Options.Parse(["--mode", "fps-once", "--fps", "501", "--profile", "unused"]), "out-of-range single-write target rejected");
+#else
 Reject(() => Options.Parse(["--mode", "patch", "--profile", "unused"]), "diagnostic build rejects patch mode");
+Reject(() => Options.Parse(["--mode", "fps-once", "--fps", "120", "--profile", "unused"]), "diagnostic build rejects single FPS write mode");
+#endif
+Reject(() => Options.Parse(["--fps", "120"]), "FPS argument cannot arm default detect mode");
 Reject(() => Options.Parse(["--mode"]), "missing mode rejected");
 Reject(() => Options.Parse(["--enable-fps"]), "unknown flags rejected");
+var budget = new OneShotBudget();
+Check(!budget.Attempted && budget.TryConsume(), "single-write budget starts available");
+Check(budget.Attempted && !budget.TryConsume() && !budget.TryConsume(), "single-write attempt cannot rearm across cycles or launches");
 Check(!MemoryPolicy.ValidAddress(0, 4, 8), "null pointer rejected");
 Check(!MemoryPolicy.ValidAddress(0xFFFF, 4, 8), "low pointer rejected");
 Check(!MemoryPolicy.ValidAddress(0xFFFFFFFF, 8, 4), "x86 range overflow rejected");

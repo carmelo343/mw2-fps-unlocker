@@ -19,6 +19,18 @@ jobs:
           global-json-file: global.json
       - name: Portable checks and Windows owned-memory fixture
         run: dotnet run --project tests/Diagnostics.Tests.csproj -c Release
+      - name: Experimental argument and single-write budget checks
+        run: dotnet run --project tests/Diagnostics.Tests.csproj -c Release -p:EnableMemoryWrites=true
+      - name: Publish disposable cross-process write probe
+        if: runner.os == 'Windows'
+        run: dotnet publish tests/WriteProbe/WriteProbe.csproj -c Release -r win-x64 --self-contained true -o artifacts/write-probe
+      - name: Exercise writes only against the fixture child process
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $probe = Start-Process -FilePath ./artifacts/write-probe/MW2.Disposable.WriteProbe.exe -ArgumentList '--log-dir', 'artifacts/probe-logs' -WorkingDirectory (Get-Location).Path -PassThru -Wait
+          Get-Content artifacts/probe-logs/*.log
+          if ($probe.ExitCode -ne 0) { throw "Disposable write probe failed" }
       - name: Compile experimental path (no game; not distributed)
         run: dotnet build mw2-fps-unlocker.csproj -c Release -p:EnableMemoryWrites=true
       - name: Publish diagnostic-only build

@@ -11,6 +11,9 @@ internal sealed record SessionStatus(Guid Session, string Text, bool CanPatch = 
 internal sealed class GameSession(Options options, DiagnosticLog log, IProgress<SessionStatus> status,
     Func<PatchRequest> request)
 {
+    private readonly OneShotBudget oneShot = new();
+    private sealed record DvarSnapshot(ulong Address, byte[] Value);
+
     internal async Task RunAsync(CancellationToken cancellation)
     {
         while (!cancellation.IsCancellationRequested)
@@ -80,10 +83,12 @@ internal sealed class GameSession(Options options, DiagnosticLog log, IProgress<
         GameProfile? profile = options.ProfilePath == null ? null : GameProfile.Load(options.ProfilePath);
         profile?.Match(image);
         if (process.HasExited) return;
-        using var memory = new MemoryHandler(process.Id, image.PointerSize, options.Mode == RunMode.Patch, log);
+        using var memory = new MemoryHandler(process.Id, image.PointerSize, options.Mode is RunMode.Patch or RunMode.FpsOnce, log);
         memory.ValidateArchitecture(image.Machine);
         ValidateLiveImage(memory, module.BaseAddress, image);
         status.Report(new(id, "Validated — " + options.Mode, options.Mode == RunMode.Patch && profile != null));
+        DvarSnapshot? previousFps = null, previousFov = null;
+        var stable = new Stopwatch();
         while (!process.HasExited)
         {
             cancellation.ThrowIfCancellationRequested();
@@ -100,10 +105,35 @@ internal sealed class GameSession(Options options, DiagnosticLog log, IProgress<
             else
             {
                 PatchRequest current = request();
-                InspectDvar(memory, module.BaseAddress, profile.Fps, "com_maxfps", false,
+                var fps = InspectDvar(memory, module.BaseAddress, profile.Fps, "com_maxfps", false,
                     current.Session == id && current.Fps, current.FpsValue);
-                InspectDvar(memory, module.BaseAddress, profile.Fov, "cg_fov", true,
+                var fov = InspectDvar(memory, module.BaseAddress, profile.Fov, "cg_fov", true,
                     current.Session == id && current.Fov, current.FovValue);
+                if (options.Mode == RunMode.FpsOnce && !oneShot.Attempted)
+                {
+                    bool unchanged = fps != null && fov != null && previousFps != null && previousFov != null &&
+                        fps.Address == previousFps.Address && fov.Address == previousFov.Address &&
+                        fps.Value.SequenceEqual(previousFps.Value) && fov.Value.SequenceEqual(previousFov.Value);
+                    if (!unchanged) stable.Restart();
+                    previousFps = fps;
+                    previousFov = fov;
+                    if (unchanged && stable.Elapsed >= TimeSpan.FromSeconds(10))
+                    {
+                        cancellation.ThrowIfCancellationRequested();
+                        if (oneShot.TryConsume())
+                        {
+                            log.Write($"FPS_ONCE attempt=1 old={BitConverter.ToInt32(fps!.Value)} target={options.FpsOnceTarget} fovBefore={BitConverter.ToSingle(fov!.Value)}; no FOV write; no repeat on restart");
+                            // Fresh name/type/pointer/value validation immediately before the one write.
+                            var fresh = InspectDvar(memory, module.BaseAddress, profile.Fps, "com_maxfps", false, false, 0);
+                            if (fresh == null || fresh.Address != fps.Address || !fresh.Value.SequenceEqual(fps.Value))
+                                throw new InvalidDataException("FPS changed before the single-write attempt.");
+                            memory.WriteValue(fresh.Address, BitConverter.GetBytes(options.FpsOnceTarget!.Value));
+                            var fovAfter = InspectDvar(memory, module.BaseAddress, profile.Fov, "cg_fov", true, false, 0);
+                            log.Write($"FPS_ONCE completed; fovAfter={(fovAfter == null ? "UNAVAILABLE" : BitConverter.ToSingle(fovAfter.Value).ToString())}; subsequent cycles read-only");
+                            status.Report(new(id, "FPS single write completed — observing"));
+                        }
+                    }
+                }
             }
             await Task.Delay(options.Mode == RunMode.Patch ? 250 : 2000, cancellation);
         }
@@ -141,12 +171,12 @@ internal sealed class GameSession(Options options, DiagnosticLog log, IProgress<
         log.Write($"CANDIDATE {name} first32={(record == null ? "READ_FAILED" : Convert.ToHexString(record))}; raw data only, layout unverified");
     }
 
-    private void InspectDvar(MemoryHandler memory, ulong moduleBase, DvarSpec spec, string name,
+    private DvarSnapshot? InspectDvar(MemoryHandler memory, ulong moduleBase, DvarSpec spec, string name,
         bool isFloat, bool enabled, int desired)
     {
         ulong? pointer = memory.ReadPointer(MemoryPolicy.Add(moduleBase, spec.Rva, memory.PointerSize));
         if (pointer == null) throw new IOException($"{name} global read failed.");
-        if (pointer == 0) { log.Write($"{name} not registered yet; skipped"); return; }
+        if (pointer == 0) { log.Write($"{name} not registered yet; skipped"); return null; }
         ulong dvar = pointer.Value;
         if (dvar % (ulong)memory.PointerSize != 0) throw new InvalidDataException("Unaligned dvar pointer.");
         ulong? namePointer = memory.ReadPointer(MemoryPolicy.Add(dvar, (ulong)spec.NamePointerOffset, memory.PointerSize));
@@ -162,12 +192,14 @@ internal sealed class GameSession(Options options, DiagnosticLog log, IProgress<
         if (!double.IsFinite(number) || number < 1 || number > (isFloat ? 180 : 1000))
             throw new InvalidDataException($"{name} implausible current value={number}.");
         log.Write($"DVAR {name} address=0x{valueAddress:X} current={number} enabled={enabled}");
-        if (!enabled || options.Mode != RunMode.Patch) return;
+        var snapshot = new DvarSnapshot(valueAddress, value);
+        if (!enabled || options.Mode != RunMode.Patch) return snapshot;
         if (desired < (isFloat ? 60 : 75) || desired > (isFloat ? 100 : 500))
             throw new InvalidDataException("Requested slider value is out of range.");
         // Resolve and validate each cycle; never cache pointers across launches.
         if (memory.ReadPointer(MemoryPolicy.Add(moduleBase, spec.Rva, memory.PointerSize)) != dvar)
             throw new InvalidDataException("Dvar pointer changed during validation.");
         memory.WriteValue(valueAddress, isFloat ? BitConverter.GetBytes((float)desired) : BitConverter.GetBytes(desired));
+        return snapshot;
     }
 }

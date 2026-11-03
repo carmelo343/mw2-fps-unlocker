@@ -24,7 +24,7 @@ public partial class AppForm : Form
         this.options = options;
         this.log = log;
         InitializeComponent();
-        Text = "MW2 diagnostics — " + options.Mode;
+        Text = "MW2 " + (options.Mode is RunMode.FpsOnce or RunMode.Patch ? "EXPERIMENTAL — " : "diagnostics — ") + options.Mode;
         ClientSize = new(500, 280);
         label1.Location = new(390, 250);
         trackBarFPS.Location = new(50, 37);
@@ -44,7 +44,9 @@ public partial class AppForm : Form
         trackBarFOV.ValueChanged += (_, _) => UpdateSettings();
         enableFps.CheckedChanged += (_, _) => UpdateSettings();
         enableFov.CheckedChanged += (_, _) => UpdateSettings();
-        var modeLabel = new Label { Text = options.Mode == RunMode.Patch
+        var modeLabel = new Label { Text = options.Mode == RunMode.FpsOnce
+            ? $"ONE FPS write to {options.FpsOnceTarget}; FOV stays read-only."
+            : options.Mode == RunMode.Patch
             ? "Experimental writes require a matching profile and explicit toggles."
             : "Diagnostic mode: no game-memory writes.", AutoSize = true, Location = new(12, 208) };
         var logButton = new Button { Text = "Show log path", Location = new(12, 240), AutoSize = true };
